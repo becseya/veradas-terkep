@@ -1,0 +1,3 @@
+scraper/*.json
+scraper/events.html
+public/locations.js
