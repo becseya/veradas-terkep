@@ -29,19 +29,21 @@ for event in table_with_data.find_all('tr'):
 
     id = hash(address)
     appointment = {
-        "date": date,
         "start": start,
         "end": end,
         "booking_id": booking_id
     }
 
     if id in palaces:
-        palaces[id]['appointments'].append(appointment)
+        if date in palaces[id]['appointments']:
+            raise Exception(f"Duplicate appointment for {name} on {date}")
+
+        palaces[id]['appointments'][date] = appointment
     else:
         palaces[id] = ({
             'name': name,
             'address': address,
-            'appointments': [appointment],
+            'appointments': {date: appointment},
         })
 
 palaces = list(palaces.values())

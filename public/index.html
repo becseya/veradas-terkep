@@ -42,12 +42,107 @@
             z-index: 10;
             font-size: 16px;
         }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-top: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 0.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            border-radius: 2px;
+            background-color: #f8f9fa;
+            color: #333;
+            flex-direction: column;
+            border: 2px solid transparent;
+            box-sizing: border-box;
+        }
+
+        .calendar-day.has-appointment {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .calendar-day.current {
+            border-color: black;
+            font-weight: bold;
+            color: black;
+        }
+
+        .calendar-day .hours {
+            font-size: 0.6rem;
+        }
+
+        .calendar-header {
+            font-weight: bold;
+            text-align: center;
+            font-size: 9px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+
+        #side-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 350px;
+            height: 100%;
+            background: white;
+            z-index: 2000;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: none;
+            transition: transform 0.3s ease;
+        }
+
+        #side-panel.active {
+            display: block;
+        }
+
+        #close-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #bdc3c7;
+        }
+
+        #close-panel:hover {
+            color: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            #side-panel {
+                top: auto;
+                bottom: 0;
+                width: 100%;
+                height: 50%;
+                box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+                border-top-left-radius: 15px;
+                border-top-right-radius: 15px;
+            }
+        }
     </style>
 </head>
 
 <body>
 
     <div id="map"></div>
+    <div id="side-panel">
+        <button id="close-panel"><i class="fa-solid fa-xmark"></i></button>
+        <div id="panel-content"></div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="locations.js"></script>
@@ -74,28 +169,80 @@
             });
         }
 
+        function getMonday(d) {
+            d = new Date(d);
+            var day = d.getDay(),
+                diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+            return new Date(d.setDate(diff));
+        }
+
+        function getNDaysFromDate(date, n) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + n);
+            return result;
+        }
+
+        function renderCalendar(appointments) {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            const currentMonday = getMonday(today);
+            const dayLabels = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'];
+
+            let html = '<div class="calendar-grid">';
+            dayLabels.forEach(l => html += `<div class="calendar-header">${l}</div>`);
+
+            for (let i = 0; i < 28; i++) {
+                const iDate = getNDaysFromDate(currentMonday, i);
+                const iStr = iDate.toISOString().split('T')[0];
+
+                const isToday = iStr === todayStr;
+                const hasApp = iStr in appointments;
+
+                let classes = 'calendar-day';
+
+                if (isToday) classes += ' current';
+                if (hasApp) classes += ' has-appointment';
+
+                html += `<div class="${classes}"><span>${iDate.getDate()}</span>`
+                html += `<span class="hours">${appointments[iStr]?.start || ''}</span>`;
+                html += `<span class="hours">${appointments[iStr]?.end || ''}</span>`;
+                html += `</div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        const sidePanel = document.getElementById('side-panel');
+        const panelContent = document.getElementById('panel-content');
+        const closePanelBtn = document.getElementById('close-panel');
+
+        closePanelBtn.addEventListener('click', () => {
+            sidePanel.classList.remove('active');
+        });
+
         LOCATIONS.forEach(point => {
             const marker = L.marker(point.coords, {
                 icon: createCustomIcon(point.is_fixed_location)
             }).addTo(map);
 
-            const popupContent = `
-                        <div style="font-family: sans-serif;">
-                            <h3 style="margin: 0 0 5px 0; font-size: 16px;">${point.name}</h3>
-                            <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">${point.address}</p>
-                            <div style="font-size: 12px;">
-                                <strong>Időpontok:</strong><br>
-                                ${point.appointments.slice(0, 3).map(app => `
-                                    <div style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 3px;">
-                                        ${app.date}: ${app.start}-${app.end}
-                                    </div>
-                                `).join('')}
-                                ${point.appointments.length > 3 ? '<div style="margin-top: 3px; font-style: italic;">...további időpontok a weboldalon</div>' : ''}
-                            </div>
+            marker.on('click', () => {
+                const content = `
+                    <div style="font-family: sans-serif;">
+                        <h2 style="margin: 0 0 10px 0; font-size: 20px; color: #333;">${point.name}</h2>
+                        <p style="margin: 0 0 20px 0; font-size: 14px; color: #666; line-height: 1.4;">
+                            <i class="fa-solid fa-location-dot" style="margin-right: 5px; color: #c0392b;"></i>
+                            ${point.address}
+                        </p>
+                        <div style="font-size: 14px;">
+                            <strong style="display: block; margin-bottom: 10px; border-bottom: 2px solid #f1f2f6; padding-bottom: 5px;">Időpontok:</strong>
+                            ${renderCalendar(point.appointments)}
                         </div>
-                    `;
-
-            marker.bindPopup(popupContent);
+                    </div>
+                `;
+                panelContent.innerHTML = content;
+                sidePanel.classList.add('active');
+            });
         });
 
     </script>
