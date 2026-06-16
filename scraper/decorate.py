@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import requests
+from urllib.parse import quote
 
 ADDRESS_CACHE_FILE = 'address_cache.json'
 API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
@@ -20,9 +21,20 @@ def is_fixed_location(place):
     return name.endswith("intézeti") or any(keyword in name for keyword in ['vérellátó', 'vérell.', 'transzfúziós', 'transzf.'])
 
 
-def call_geocode_api(address):
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?address=Hungary {address}&key={API_KEY}"
-    return requests.get(url).json()
+def call_map_api(address):
+    encoded_address = quote(address)
+
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={API_KEY}&components=country:HU"
+    data = requests.get(url).json()
+
+    zeroResults = data['status'] == 'ZERO_RESULTS'
+    inaccurate = not zeroResults and data['results'][0]['geometry']['location_type'] != 'ROOFTOP'
+
+    if zeroResults or inaccurate:
+        url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={encoded_address}&key={API_KEY}&region=hu"
+        data = requests.get(url).json()
+
+    return data
 
 
 def call_geocode_api_best_effort(address):
@@ -32,7 +44,7 @@ def call_geocode_api_best_effort(address):
     dropped_street = False
     for _ in range(ATTEMPTS):
         try:
-            data = call_geocode_api(address)
+            data = call_map_api(address)
 
             if data['status'] == 'OK':
                 return data
