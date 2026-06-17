@@ -93,21 +93,137 @@
             right: 0;
             width: 350px;
             height: 100%;
-            background: white;
             z-index: 2000;
-            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-            padding: 25px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            display: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            pointer-events: none;
             transition: transform 0.3s ease;
         }
 
-        #side-panel.active {
-            display: block;
+        .panel-section {
+            padding: 20px;
+            background: white;
+            pointer-events: auto;
+            border-top: 1px solid #f0f0f0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
         }
 
-        #close-panel {
+        .panel-section.collapsible .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 5px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-btn.collapsed i {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .section-content.collapsed {
+            display: none;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .day-filters {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        .day-filter {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .day-filter input {
+            display: none;
+        }
+
+        .day-filter span {
+            display: block;
+            padding: 8px 1px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .day-filter input:checked + span {
+            background: #c0392b;
+            color: white;
+            border-color: #c0392b;
+        }
+
+        .interval-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .interval-filter {
+            cursor: pointer;
+        }
+
+        .interval-filter input {
+            display: none;
+        }
+
+        .interval-filter span {
+            display: block;
+            padding: 8px 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .interval-filter input:checked + span {
+            background: #c0392b;
+            color: white;
+            border-color: #c0392b;
+        }
+
+        #section-inspector {
+            position: relative;
+            flex: 0 1 auto;
+            overflow-y: auto;
+            max-height: 80%;
+            border-top: none;
+        }
+
+        #close-inspector {
             position: absolute;
             top: 15px;
             right: 15px;
@@ -116,21 +232,27 @@
             font-size: 20px;
             cursor: pointer;
             color: #bdc3c7;
+            z-index: 10;
         }
 
-        #close-panel:hover {
+        #close-inspector:hover {
             color: #7f8c8d;
         }
 
         @media (max-width: 768px) {
             #side-panel {
-                top: auto;
-                bottom: 0;
                 width: 100%;
-                height: 50%;
-                box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+                height: 100%;
+            }
+
+            #section-inspector {
+                max-height: 60%;
                 border-top-left-radius: 15px;
                 border-top-right-radius: 15px;
+            }
+
+            #section-filters {
+                border-bottom: none;
             }
         }
     </style>
@@ -140,8 +262,52 @@
 
     <div id="map"></div>
     <div id="side-panel">
-        <button id="close-panel"><i class="fa-solid fa-xmark"></i></button>
-        <div id="panel-content"></div>
+        <div id="section-inspector" class="panel-section" style="display: none;">
+            <button id="close-inspector"><i class="fa-solid fa-xmark"></i></button>
+            <div id="inspector-content"></div>
+        </div>
+
+        <div id="section-filters" class="panel-section collapsible">
+            <div class="section-header" id="filters-header">
+                <h3>Szűrők</h3>
+                <button class="toggle-btn" id="toggle-filters">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+            <div id="filters-content" class="section-content">
+                <div class="filter-group" style="margin-top: 15px;">
+                    <span style="font-size: 0.95rem; color: #34495e;">Dátum:</span>
+                    <select id="filter-date-range" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #dee2e6; margin-top: 5px; font-size: 0.9rem; color: #34495e; cursor: pointer; outline: none;">
+                        <option value="anytime">Bármikor</option>
+                        <option value="today">Ma</option>
+                        <option value="next_workday">Következő munkanap</option>
+                        <option value="this_week">A héten</option>
+                        <option value="next_week">Következő héten</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="margin-top: 15px;">
+                    <span style="font-size: 0.95rem; color: #34495e;">Napok:</span>
+                    <div class="day-filters">
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="0" checked><span>H</span></label>
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="1" checked><span>K</span></label>
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="2" checked><span>Sze</span></label>
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="3" checked><span>Cs</span></label>
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="4" checked><span>P</span></label>
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="5" checked><span>Szo</span></label>
+                        <label class="day-filter"><input type="checkbox" class="filter-day" value="6" checked><span>V</span></label>
+                    </div>
+                </div>
+                <div class="filter-group" style="margin-top: 15px;">
+                    <span style="font-size: 0.95rem; color: #34495e;">Időszakok:</span>
+                    <div class="interval-filters">
+                        <label class="interval-filter"><input type="checkbox" class="filter-interval" value="morning" checked><span>Reggel (8-10)</span></label>
+                        <label class="interval-filter"><input type="checkbox" class="filter-interval" value="beforeLunch" checked><span>Délelőtt (10-13)</span></label>
+                        <label class="interval-filter"><input type="checkbox" class="filter-interval" value="afterLunch" checked><span>Délután (13-17)</span></label>
+                        <label class="interval-filter"><input type="checkbox" class="filter-interval" value="evening" checked><span>Este (17-19)</span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -153,7 +319,7 @@
 
         // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
+            maxZoom: 16,
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
@@ -213,38 +379,125 @@
             return html;
         }
 
-        const sidePanel = document.getElementById('side-panel');
-        const panelContent = document.getElementById('panel-content');
-        const closePanelBtn = document.getElementById('close-panel');
+        // Side panel elements
+        const filtersHeader = document.getElementById('filters-header');
+        const filtersContent = document.getElementById('filters-content');
+        const toggleFiltersBtn = document.getElementById('toggle-filters');
+        
+        const sectionInspector = document.getElementById('section-inspector');
+        const inspectorContent = document.getElementById('inspector-content');
+        const closeInspectorBtn = document.getElementById('close-inspector');
 
-        closePanelBtn.addEventListener('click', () => {
-            sidePanel.classList.remove('active');
+        const filterDateRange = document.getElementById('filter-date-range');
+        const dayFilters = document.querySelectorAll('.filter-day');
+        const intervalFilters = document.querySelectorAll('.filter-interval');
+
+        // Functions to manage panel state
+        function toggleFilters(forceCollapse) {
+            const isCollapsed = forceCollapse === true || (!filtersContent.classList.contains('collapsed') && forceCollapse !== false);
+            
+            if (isCollapsed) {
+                filtersContent.classList.add('collapsed');
+                toggleFiltersBtn.classList.add('collapsed');
+            } else {
+                filtersContent.classList.remove('collapsed');
+                toggleFiltersBtn.classList.remove('collapsed');
+            }
+        }
+
+        filtersHeader.addEventListener('click', () => toggleFilters());
+
+        closeInspectorBtn.addEventListener('click', () => {
+            sectionInspector.style.display = 'none';
         });
 
-        LOCATIONS.forEach(point => {
-            const marker = L.marker(point.coords, {
-                icon: createCustomIcon(point.is_fixed_location)
-            }).addTo(map);
+        // Marker management
+        const markersLayer = L.layerGroup().addTo(map);
 
-            marker.on('click', () => {
-                const content = `
-                    <div style="font-family: sans-serif;">
-                        <h2 style="margin: 0 0 10px 0; font-size: 20px; color: #333;">${point.name}</h2>
-                        <p style="margin: 0 0 20px 0; font-size: 14px; color: #666; line-height: 1.4;">
-                            <i class="fa-solid fa-location-dot" style="margin-right: 5px; color: #c0392b;"></i>
-                            ${point.address}
-                        </p>
-                        <div style="font-size: 14px;">
-                            <strong style="display: block; margin-bottom: 10px; border-bottom: 2px solid #f1f2f6; padding-bottom: 5px;">Időpontok:</strong>
-                            ${renderCalendar(point.appointments)}
-                        </div>
-                    </div>
-                `;
-                panelContent.innerHTML = content;
-                sidePanel.classList.add('active');
+        function getDatesForRange(range) {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const currentMonday = getMonday(today);
+            
+            if (range === 'today') {
+                return [todayStr];
+            } else if (range === 'next_workday') {
+                let d = new Date(today);
+                d.setDate(d.getDate() + 1);
+                while (d.getDay() === 0 || d.getDay() === 6) {
+                    d.setDate(d.getDate() + 1);
+                }
+                return [d.toISOString().split('T')[0]];
+            } else if (range === 'this_week') {
+                let dates = [];
+                for (let i = 0; i < 7; i++) {
+                    dates.push(getNDaysFromDate(currentMonday, i).toISOString().split('T')[0]);
+                }
+                return dates;
+            } else if (range === 'next_week') {
+                let dates = [];
+                const nextMonday = getNDaysFromDate(currentMonday, 7);
+                for (let i = 0; i < 7; i++) {
+                    dates.push(getNDaysFromDate(nextMonday, i).toISOString().split('T')[0]);
+                }
+                return dates;
+            }
+            return null; // anytime
+        }
+
+        function renderMarkers() {
+            markersLayer.clearLayers();
+            const selectedDays = Array.from(dayFilters).filter(cb => cb.checked).map(cb => parseInt(cb.value));
+            const selectedIntervals = Array.from(intervalFilters).filter(cb => cb.checked).map(cb => cb.value);
+            const dateRangeDates = getDatesForRange(filterDateRange.value);
+
+            const filtered = LOCATIONS.filter(point => {
+                const hasAppointmentMatch = Object.entries(point.appointments).some(([dateStr, app]) => {
+                    if (dateRangeDates && !dateRangeDates.includes(dateStr)) return false;
+                    const dayMatch = selectedDays.includes(app.dayOfWeek);
+                    const intervalMatch = app.intervals.some(interval => selectedIntervals.includes(interval));
+                    return dayMatch && intervalMatch;
+                });
+                return hasAppointmentMatch;
             });
-        });
 
+            filtered.forEach(point => {
+                const marker = L.marker(point.coords, {
+                    icon: createCustomIcon(point.is_fixed_location)
+                }).addTo(markersLayer);
+
+                marker.on('click', () => {
+                    const content = `
+                        <div style="font-family: sans-serif;">
+                            <h2 style="margin: 0 0 10px 0; font-size: 20px; color: #333;">${point.name}</h2>
+                            <p style="margin: 0 0 20px 0; font-size: 14px; color: #666; line-height: 1.4;">
+                                <i class="fa-solid fa-location-dot" style="margin-right: 5px; color: #c0392b;"></i>
+                                ${point.address}
+                            </p>
+                            <div style="font-size: 14px;">
+                                <strong style="display: block; margin-bottom: 10px; border-bottom: 2px solid #f1f2f6; padding-bottom: 5px;">Időpontok:</strong>
+                                ${renderCalendar(point.appointments)}
+                            </div>
+                        </div>
+                    `;
+                    inspectorContent.innerHTML = content;
+                    sectionInspector.style.display = 'block';
+
+                    // Collapse filters when marker selected
+                    toggleFilters(true);
+
+                    // On mobile, scroll to top of inspector
+                    sectionInspector.scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+        }
+
+        filterDateRange.addEventListener('change', renderMarkers);
+        dayFilters.forEach(cb => cb.addEventListener('change', renderMarkers));
+        intervalFilters.forEach(cb => cb.addEventListener('change', renderMarkers));
+
+        // Initial render
+        renderMarkers();
     </script>
 
 </body>
