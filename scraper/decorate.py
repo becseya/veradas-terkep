@@ -79,6 +79,31 @@ def get_coordinates_cached(address, cache):
     return coords
 
 
+def get_intervals(start: str, end: str):
+    INTERVALS = [
+        ("morning", 8, 10),
+        ("beforeLunch", 10, 13),
+        ("afterLunch", 13, 17),
+        ("evening", 17, 19),
+    ]
+
+    start_hour = int(start.split(':')[0])
+    end_hour = int(end.split(':')[0])
+
+    result = []
+    for name, interval_start, interval_end in INTERVALS:
+        if start_hour < interval_end and end_hour > interval_start:
+            result.append(name)
+
+    return result
+
+
+def get_day_of_week(date_str: str) -> int:
+    from datetime import datetime
+    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+    return date_obj.weekday()  # Monday is 0 and Sunday is 6
+
+
 if __name__ == "__main__":
 
     places = json.load(sys.stdin)
@@ -87,6 +112,10 @@ if __name__ == "__main__":
     for place in places:
         place['is_fixed_location'] = is_fixed_location(place)
         place['coords'] = get_coordinates_cached(place['address'], addresses)
+
+        for date, apt in place['appointments'].items():
+            apt['intervals'] = get_intervals(apt['start'], apt['end'])
+            apt['dayOfWeek'] = get_day_of_week(date)
 
     # save
     with open(ADDRESS_CACHE_FILE, 'w', encoding='utf-8') as f:
