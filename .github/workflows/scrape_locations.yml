@@ -1,0 +1,55 @@
+name: Scrape locations
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape_locations:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Expose API secret to workflow
+        run: |
+          GOOGLE_MAPS_API_KEY="${{ secrets.GOOGLE_MAPS_API_KEY }}"
+          echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY" >> "$GITHUB_ENV"
+
+      - name: Restore address cache
+        uses: actions/cache@v6
+        with:
+          path: scraper/address_cache.json
+          key: address-cache-restore-${{ github.run_id }}
+          restore-keys: |
+            address-cache-restore-
+
+      - name: Scrape locations
+        run: pip install -r scraper/requirements.txt && bash scraper/run.sh
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0 # firebase tools has network issues with other versions
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: "${{ secrets.DEPLOYER_BOT_KEY }}"
+          projectId: veradas-terkep
+          channelId: live
+
+      - name: Clear old cache entries
+        run: |
+          cacheKeys=$(gh cache list --limit 100 --key address-cache-restore- --json id --jq '.[].id')
+          set +e
+          for cacheKey in $cacheKeys
+          do
+              gh cache delete $cacheKey
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
