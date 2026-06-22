@@ -1,0 +1,38 @@
+name: Scrape locations
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape_locations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Expose API secret to workflow
+        run: |
+          GOOGLE_MAPS_API_KEY="${{ secrets.GOOGLE_MAPS_API_KEY }}"
+          echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY" >> "$GITHUB_ENV"
+
+      - name: Restore address cache
+        id: address-cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: scraper/address_cache.json
+          key: address-cache-restore-key
+
+      - run: pip install -r scraper/requirements.txt && bash scraper/run.sh
+
+      - name: Save address cache
+        uses: actions/cache/save@v4
+        with:
+          path: scraper/address_cache.json
+          key: address-cache-restore-key
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: "${{ secrets.DEPLOYER_BOT_KEY }}"
+          projectId: veradas-terkep
+          channelId: live
