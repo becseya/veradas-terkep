@@ -3,7 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(dirname "$0")
-OUTPUT_JS="../public/locations.js"
+OUT_DIR="../html/public"
+OUTPUT_JS="$OUT_DIR/locations.js"
 
 cd "$SCRIPT_DIR"
 
@@ -17,6 +18,7 @@ cat events.html | python3 aggregate.py > locations.json
 cat locations.json | python3 decorate.py > locations_decorated.json
 
 # final output
+mkdir -p "$OUT_DIR"
 echo "const LOCATIONS = " > "$OUTPUT_JS"
 cat locations_decorated.json >> "$OUTPUT_JS"
 echo ";" >> "$OUTPUT_JS"

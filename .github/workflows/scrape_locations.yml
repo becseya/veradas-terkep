@@ -28,6 +28,12 @@ jobs:
           restore-keys: |
             scraper-state-key-
 
+      - name: Restore node_modules cache
+        uses: actions/cache@v6
+        with:
+          path: html/node_modules
+          key: node-modules-${{ hashFiles('html/package-lock.json') }}
+
       - name: Scrape locations
         run: pip install -r scraper/requirements.txt && bash scraper/run.sh
 
@@ -35,6 +41,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.22.0 # firebase tools has network issues with other versions
+
+      - name: Build frontend
+        run: cd html && npm install && npm run build
 
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
