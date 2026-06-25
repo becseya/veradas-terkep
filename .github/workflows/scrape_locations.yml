@@ -27,9 +27,27 @@ jobs:
       - name: Scrape locations
         run: pip install -r scraper/requirements.txt && bash scraper/run.sh
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0 # firebase tools has network issues with other versions
+
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: "${{ secrets.DEPLOYER_BOT_KEY }}"
           projectId: veradas-terkep
           channelId: live
+
+      - name: Clear old caches
+        run: |
+          cacheKeysForPR=$(gh cache list --limit 100 --key address-cache-restore- --json id --jq '.[].id')
+          set +e
+          for cacheKey in $cacheKeysForPR
+          do
+              gh cache delete $cacheKey
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: refs/pull/${{ github.event.pull_request.number }}/merge
