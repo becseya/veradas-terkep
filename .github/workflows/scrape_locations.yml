@@ -8,6 +8,8 @@ on:
 jobs:
   scrape_locations:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
       - uses: actions/checkout@v6
 
@@ -47,6 +49,7 @@ jobs:
           do
               gh cache delete $cacheKey
           done
+          exit 0
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
