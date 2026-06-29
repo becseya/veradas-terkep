@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /subscriptions/{subscription} {
+      allow create, read, update, delete: if true;
+    }
+    match /subscriptions {
+      allow list: if false;
+    }
+  }
+}

@@ -161,6 +161,49 @@ body {
   gap: 14px;
 }
 
+.panel-header-static {
+  cursor: default;
+}
+
+.panel-subscribe {
+  overflow: hidden;
+}
+
+.subscribe-copy {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.35;
+  font-size: 0.9rem;
+}
+
+.subscribe-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  background: linear-gradient(120deg, #b53a2d 0%, #d04f41 100%);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.16s ease, opacity 0.2s ease;
+}
+
+.subscribe-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.subscribe-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.subscribe-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 .filter-group {
   display: grid;
   gap: 8px;
