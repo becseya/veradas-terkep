@@ -1,6 +1,8 @@
 scraper/*.json
 scraper/*.html
 html/public
+venv
+__pycache__
 
 
 # ------------------- FIREBASE AUTO GENERATION BELOW -------------------

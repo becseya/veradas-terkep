@@ -1,6 +1,7 @@
 <script>
   import FilterPanel from './FilterPanel.svelte';
   import InspectorPanel from './InspectorPanel.svelte';
+  import SubscribePanel from './SubscribePanel.svelte';
 
   export let selectedLocation = null;
   export let filters;
@@ -22,4 +23,6 @@
     bind:collapsed={filtersCollapsed}
     bind:filters
   />
+
+  <SubscribePanel />
 </aside>
