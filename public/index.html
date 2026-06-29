@@ -463,7 +463,7 @@
 
             filtered.forEach(point => {
                 const marker = L.marker(point.coords, {
-                    icon: createCustomIcon(point.is_fixed_location)
+                    icon: createCustomIcon(point.isFixedLocation)
                 }).addTo(markersLayer);
 
                 marker.on('click', () => {

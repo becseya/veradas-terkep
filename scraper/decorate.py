@@ -165,7 +165,7 @@ if __name__ == "__main__":
     history = load_history()
 
     for place in places:
-        place['is_fixed_location'] = is_fixed_location(place)
+        place['isFixedLocation'] = is_fixed_location(place)
         place['coords'] = get_coordinates_cached(place['address'], addresses)
 
         for date, apt in place['appointments'].items():

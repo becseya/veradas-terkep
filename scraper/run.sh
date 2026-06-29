@@ -23,5 +23,5 @@ echo ";" >> "$OUTPUT_JS"
 echo "const DATE_SCRAPED_AT='$(date)';" >> "$OUTPUT_JS"
 
 # print info
-num_elements=$(cat locations_decorated.json | grep 'is_fixed_location' | wc -l)
+num_elements=$(cat locations_decorated.json | grep 'isFixedLocation' | wc -l)
 echo "Processed $num_elements locations"
