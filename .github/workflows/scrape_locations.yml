@@ -18,13 +18,15 @@ jobs:
           GOOGLE_MAPS_API_KEY="${{ secrets.GOOGLE_MAPS_API_KEY }}"
           echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY" >> "$GITHUB_ENV"
 
-      - name: Restore address cache
+      - name: Restore scraper state
         uses: actions/cache@v6
         with:
-          path: scraper/address_cache.json
-          key: address-cache-restore-${{ github.run_id }}
+          path: |
+            scraper/address_cache.json
+            scraper/location_history.json
+          key: scraper-state-key-${{ github.run_id }}
           restore-keys: |
-            address-cache-restore-
+            scraper-state-key-
 
       - name: Scrape locations
         run: pip install -r scraper/requirements.txt && bash scraper/run.sh
@@ -43,7 +45,7 @@ jobs:
 
       - name: Clear old cache entries
         run: |
-          cacheKeys=$(gh cache list --limit 100 --key address-cache-restore- --json id --jq '.[].id')
+          cacheKeys=$(gh cache list --limit 100 --key scraper-state-key- --json id --jq '.[].id')
           set +e
           for cacheKey in $cacheKeys
           do
