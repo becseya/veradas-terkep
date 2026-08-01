@@ -3,10 +3,10 @@
   import Map from './lib/components/Map.svelte';
   import Sidebar from './lib/components/Sidebar.svelte';
   import { DEFAULT_FILTERS, filterLocations } from './lib/utils/filtering.js';
+  import { mapState } from './lib/stores/mapState.js';
 
   let allLocations = [];
   let filteredLocations = [];
-  let selectedLocation = null;
   let filters = { ...DEFAULT_FILTERS };
 
   onMount(async () => {
@@ -18,15 +18,15 @@
   $: filteredLocations = filterLocations(allLocations, filters);
 
   $: if (
-    selectedLocation &&
-    !filteredLocations.some((location) => location.name === selectedLocation.name)
+    $mapState.selectedLocation &&
+    !filteredLocations.some((location) => location.name === $mapState.selectedLocation.name)
   ) {
-    selectedLocation = null;
+    $mapState.selectedLocation = null;
   }
 </script>
 
 <main class="layout">
-  <Map locations={filteredLocations} bind:selectedLocation />
+  <Map locations={filteredLocations} />
 
-  <Sidebar bind:selectedLocation bind:filters />
+  <Sidebar bind:filters />
 </main>

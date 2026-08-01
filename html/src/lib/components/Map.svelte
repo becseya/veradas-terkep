@@ -1,9 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import L from 'leaflet';
+  import { mapState } from '../stores/mapState.js';
 
   export let locations = [];
-  export let selectedLocation = null;
 
   let mapElement;
   let map;
@@ -34,7 +34,7 @@
       }).addTo(markersLayer);
 
       marker.on('click', () => {
-        selectedLocation = location;
+        $mapState.selectedLocation = location;
       });
     });
   }
