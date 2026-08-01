@@ -3,8 +3,8 @@
   import FilterPanel from './FilterPanel.svelte';
   import InspectorPanel from './InspectorPanel.svelte';
   import SubscribePanel from './SubscribePanel.svelte';
+  import { mapState } from '../stores/mapState.js';
 
-  export let selectedLocation = null;
   export let filters;
 
   let filtersCollapsed = false;
@@ -23,13 +23,13 @@
     return () => mediaQuery.removeEventListener('change', syncViewportState);
   });
 
-  $: filtersCollapsed = selectedLocation ? true : isMobile;
+  $: filtersCollapsed = $mapState.selectedLocation ? true : isMobile;
 </script>
 
 <aside class="sidebar-shell">
   <InspectorPanel
-    visible={Boolean(selectedLocation)}
-    bind:location={selectedLocation}
+    visible={Boolean($mapState.selectedLocation)}
+    bind:location={$mapState.selectedLocation}
   />
 
   <FilterPanel
