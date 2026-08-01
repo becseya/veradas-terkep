@@ -1,7 +1,13 @@
 <script>
   import { onMount } from "svelte";
+  import { mapState } from '../stores/mapState.js';
 
-  // TODO proper unsubscribe, UX, chapta for subscribe
+  const STATES = {
+    INIT: 'ST_init',
+    SUBSCRIBED: 'ST_subscribed',
+    GET_LOC: 'ST_get_loc',
+    FINALIZE: 'ST_finalize'
+  };
 
   const firebaseConfig = {
     apiKey: "AIzaSyBX16EsUuOO25BFtLQG9mDdGU_Zhi8pAOY",
@@ -17,13 +23,12 @@
 
   let db;
   let messaging;
-  let subscribed = false;
-  let statusText = "Ellenorizzuk az elozo feliratkozast...";
+  let panelState = STATES.INIT;
   let busy = false;
 
   function initFirebase() {
     if (typeof window === "undefined" || !window.firebase) {
-      statusText = "A Firebase SDK nem toltodott be.";
+      alert("A Firebase SDK nem toltodott be.");
       return false;
     }
 
@@ -36,12 +41,71 @@
     return true;
   }
 
+  function serverTimestamp() {
+    return window.firebase.firestore.FieldValue.serverTimestamp();
+  }
+
+  function exportState() {
+    const zone = $mapState.subscriptionZone;
+    if (!zone.coords) {
+      throw new Error('Nincs kivalasztott helyszin.');
+    }
+
+    return JSON.stringify({
+      zones: [{
+        lat: zone.coords[0],
+        lng: zone.coords[1],
+        radiusKm: zone.radiusKm,
+        filter: 0,
+      }],
+      snoozeUntil: '1970-01-01T00:00:00Z'
+    });
+  }
+
+  function restoreState(details) {
+    if (!details || typeof details !== 'string') {
+      throw new Error('Invalid details payload.');
+    }
+
+    const parsed = JSON.parse(details);
+    const firstZone = parsed?.zones?.[0];
+
+    if (!firstZone) {
+      throw new Error('Invalid details payload.');
+    }
+
+    $mapState.subscriptionZone.coords = [firstZone.lat, firstZone.lng];
+    $mapState.subscriptionZone.radiusKm = firstZone.radiusKm;
+  }
+
   async function ensureMessagingServiceWorker() {
     if (!("serviceWorker" in navigator)) {
       throw new Error("A bongeszo nem tamogatja a service worker-t.");
     }
 
     await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  }
+
+ async function unSubscribe() {
+    if (!initFirebase()) {
+      return;
+    }
+
+    busy = true;
+
+    try {
+      await ensureMessagingServiceWorker();
+      const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
+      await db.collection('subscriptions').doc(token).delete();
+
+      $mapState.subscriptionZone.coords = null;
+      panelState = STATES.GET_LOC;
+    } catch (error) {
+      console.error('unSubscribe error:', error);
+      alert('Hiba tortent a leiratkozas soran.');
+    } finally {
+      busy = false;
+    }
   }
 
   async function gCheckSubscription() {
@@ -53,18 +117,24 @@
       await ensureMessagingServiceWorker();
       const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
       if (token) {
-        const snapshot = await db.collection("subscriptions").doc(token).get();
+        const subscriptionRef = db.collection("subscriptions").doc(token);
+        const snapshot = await subscriptionRef.get();
         if (snapshot.exists) {
-          subscribed = true;
-          statusText = "Mar fel vagy iratkozva az ertesitesekre.";
+          await subscriptionRef.update({
+            lastSeen: serverTimestamp()
+          });
+
+          restoreState(snapshot.data()?.details);
+          panelState = STATES.SUBSCRIBED;
           return;
         }
       }
-      statusText = "Iratkozz fel, hogy ertesitest kapj az uj veradasokrol.";
     } catch (err) {
-      statusText =
-        "Nincs aktiv feliratkozas, vagy nincs engedelyezve az ertesites.";
+      console.error('checkSubscription error:', err);
     }
+
+    $mapState.subscriptionZone.coords = null;
+    panelState = STATES.GET_LOC;
   }
 
   async function gSubscribe() {
@@ -77,9 +147,7 @@
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        alert("Az ertesitesek engedelyezese szukseges a funkciohoz!");
-        statusText = "Az ertesitesi engedely hianyzik.";
-        return;
+        throw new Error("Az ertesitesi engedely hianyzik.");
       }
 
       await ensureMessagingServiceWorker();
@@ -87,31 +155,36 @@
       const token = await messaging.getToken({
         vapidKey: PUBLIC_VAPID_KEY,
       });
-
-      if (token) {
+    
+     if (token) {
         await db.collection("subscriptions").doc(token).set({
-          name: "foo",
-          bar: 5,
+          details: exportState(),
+          lastSeen: serverTimestamp()
         });
 
-        subscribed = true;
-        statusText = "Sikeres feliratkozas!";
+        panelState = STATES.SUBSCRIBED;
         alert(
           "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
         );
       } else {
-        statusText = "Nem sikerult azonositot lekerdezni.";
         alert(
           "Nem sikerult azonositot lekerni. Ellenorizd a bongeszo beallitasait!",
         );
       }
     } catch (error) {
       console.error("Subscription error:", error);
-      statusText = "Hiba tortent a feliratkozas soran.";
-      alert("Hiba tortent a feliratkozas soran. Reszletek a konzolban.");
+      alert("Hiba tortent a feliratkozas soran.");
     } finally {
       busy = false;
     }
+  }
+
+  function onRadiusChange(event) {
+    $mapState.subscriptionZone.radiusKm = Number(event.currentTarget.value);
+  }
+
+  $: if (panelState === STATES.GET_LOC && $mapState.subscriptionZone.coords) {
+    panelState = STATES.FINALIZE;
   }
 
   onMount(async () => {
@@ -119,30 +192,44 @@
   });
 </script>
 
-<section class="panel panel-subscribe">
-  <header class="panel-header panel-header-static">
-    <h3>Ertesitesek</h3>
-  </header>
+{#if panelState !== STATES.INIT}
+  <section class="panel panel-subscribe">
+    <header class="panel-header panel-header-static">
+      <h3>Ertesitesek</h3>
+    </header>
 
-  <div class="panel-body">
-    <p class="subscribe-copy">
-      Kapj push ertesitest, ha uj veradasi idopont jelenik meg a kornyekeden.
-    </p>
-
-    <button
-      class="subscribe-btn"
-      on:click={gSubscribe}
-      disabled={busy || subscribed}
-    >
-      {#if busy}
-        Folyamatban...
-      {:else if subscribed}
-        Feliratkozva
+    <div class="panel-body">
+      {#if panelState === STATES.SUBSCRIBED}
+        <p class="subscribe-copy">Mar sikeresen feliratkoztal.</p>
+        <button class="subscribe-btn subscribe-btn-secondary" on:click={unSubscribe} disabled={busy}>
+          {busy ? 'Folyamatban...' : 'Leiratkozas'}
+        </button>
+      {:else if panelState === STATES.GET_LOC}
+        <p class="subscribe-copy">Valaszd ki a helyszint a terkep segitsegevel.</p>
       {:else}
-        Feliratkozas
-      {/if}
-    </button>
+        <p class="subscribe-copy">
+          A kijelolt helyszin kattintassal modosithato. Allitsd be a sugarat, majd mentsd a
+          feliratkozast.
+        </p>
 
-    <p class="subscribe-meta">{statusText}</p>
-  </div>
-</section>
+        <label class="radius-wrap" for="zone-radius">
+          <span>Sugar: {$mapState.subscriptionZone.radiusKm} km</span>
+          <input
+            id="zone-radius"
+            type="range"
+            min="1"
+            max="30"
+            step="0.1"
+            value={$mapState.subscriptionZone.radiusKm}
+            on:input={onRadiusChange}
+            disabled={busy}
+          />
+        </label>
+
+        <button class="subscribe-btn" on:click={gSubscribe} disabled={busy}>
+          {busy ? 'Folyamatban...' : 'Feliratkozas'}
+        </button>
+      {/if}
+    </div>
+  </section>
+{/if}

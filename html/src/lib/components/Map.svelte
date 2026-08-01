@@ -8,6 +8,7 @@
   let mapElement;
   let map;
   let markersLayer;
+  let subscriptionLayer;
 
   function createCustomIcon(isFixed) {
     const color = isFixed ? '#6f7b86' : 'var(--accent)';
@@ -39,6 +40,34 @@
     });
   }
 
+  function renderSubscriptionZone(zone) {
+    if (!subscriptionLayer) {
+      return;
+    }
+
+    subscriptionLayer.clearLayers();
+
+    if (!zone.coords) {
+      return;
+    }
+
+    L.circle(zone.coords, {
+      radius: zone.radiusKm * 1000,
+      color: '#a2332a',
+      weight: 2,
+      fillColor: '#d96b5d',
+      fillOpacity: 0.2,
+    }).addTo(subscriptionLayer);
+
+    L.circleMarker(zone.coords, {
+      radius: 6,
+      color: '#7d221b',
+      fillColor: '#bf3f2f',
+      fillOpacity: 0.95,
+      weight: 2,
+    }).addTo(subscriptionLayer);
+  }
+
   onMount(() => {
     map = L.map(mapElement, {
       zoomControl: true
@@ -51,10 +80,17 @@
     }).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
+    subscriptionLayer = L.layerGroup().addTo(map);
+
+    map.on('click', (event) => {
+      $mapState.subscriptionZone.coords = [event.latlng.lat, event.latlng.lng];
+    });
+
     renderMarkers(locations);
   });
 
   $: renderMarkers(locations);
+  $: renderSubscriptionZone($mapState.subscriptionZone);
 </script>
 
 <div class="map-root" bind:this={mapElement}></div>

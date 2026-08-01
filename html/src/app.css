@@ -198,6 +198,21 @@ body {
   cursor: default;
 }
 
+.subscribe-btn-secondary {
+  background: linear-gradient(120deg, #6e7d8b 0%, #7c8d9d 100%);
+}
+
+.radius-wrap {
+  display: grid;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.radius-wrap input[type='range'] {
+  width: 100%;
+}
+
 .subscribe-meta {
   margin: 0;
   font-size: 0.82rem;
