@@ -10,7 +10,7 @@
   let markersLayer;
 
   function createCustomIcon(isFixed) {
-    const color = isFixed ? '#6f7b86' : '#bf3f2f';
+    const color = isFixed ? '#6f7b86' : 'var(--accent)';
     const iconClass = isFixed ? 'fa-solid fa-hospital' : 'fa-solid fa-ambulance';
 
     return L.divIcon({
