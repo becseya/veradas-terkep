@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import CollapsiblePanel from './CollapsiblePanel.svelte';
   import { mapState } from '../stores/mapState.js';
 
   const STATES = {
@@ -25,6 +26,7 @@
   let messaging;
   let panelState = STATES.INIT;
   let busy = false;
+  let collapsed = true;
 
   function ensureFirebase() {
     if (typeof window === "undefined" || !window.firebase) {
@@ -133,6 +135,7 @@
 
     $mapState.subscriptionZone.coords = null;
     panelState = STATES.GET_LOC;
+    collapsed = false;
   }
 
   async function gSubscribe() {
@@ -152,6 +155,7 @@
       });
 
       panelState = STATES.SUBSCRIBED;
+      collapsed = true;
       alert(
         "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
       );
@@ -178,44 +182,46 @@
   });
 </script>
 
-{#if panelState !== STATES.INIT}
-  <section class="panel panel-subscribe">
-    <header class="panel-header panel-header-static">
-      <h3>Ertesitesek</h3>
-    </header>
+<CollapsiblePanel
+  bind:collapsed
+  sectionClass="panel-subscribe"
+  title="Ertesitesek"
+  toggleLabel="Ertesitesek lenyitása/felcsukása"
+>
+  {#if panelState === STATES.INIT}
+    <p class="subscribe-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      Feliratkozasi allapot ellenorzese...
+    </p>
+  {:else if panelState === STATES.SUBSCRIBED}
+    <p class="subscribe-copy">Mar sikeresen feliratkoztal.</p>
+    <button class="subscribe-btn subscribe-btn-secondary" on:click={unSubscribe} disabled={busy}>
+      {busy ? 'Folyamatban...' : 'Leiratkozas'}
+    </button>
+  {:else if panelState === STATES.GET_LOC}
+    <p class="subscribe-copy">Valaszd ki a helyszint a terkep segitsegevel.</p>
+  {:else}
+    <p class="subscribe-copy">
+      A kijelolt helyszin kattintassal modosithato. Allitsd be a sugarat, majd mentsd a
+      feliratkozast.
+    </p>
 
-    <div class="panel-body">
-      {#if panelState === STATES.SUBSCRIBED}
-        <p class="subscribe-copy">Mar sikeresen feliratkoztal.</p>
-        <button class="subscribe-btn subscribe-btn-secondary" on:click={unSubscribe} disabled={busy}>
-          {busy ? 'Folyamatban...' : 'Leiratkozas'}
-        </button>
-      {:else if panelState === STATES.GET_LOC}
-        <p class="subscribe-copy">Valaszd ki a helyszint a terkep segitsegevel.</p>
-      {:else}
-        <p class="subscribe-copy">
-          A kijelolt helyszin kattintassal modosithato. Allitsd be a sugarat, majd mentsd a
-          feliratkozast.
-        </p>
+    <label class="radius-wrap" for="zone-radius">
+      <span>Sugar: {$mapState.subscriptionZone.radiusKm} km</span>
+      <input
+        id="zone-radius"
+        type="range"
+        min="1"
+        max="30"
+        step="0.1"
+        value={$mapState.subscriptionZone.radiusKm}
+        on:input={onRadiusChange}
+        disabled={busy}
+      />
+    </label>
 
-        <label class="radius-wrap" for="zone-radius">
-          <span>Sugar: {$mapState.subscriptionZone.radiusKm} km</span>
-          <input
-            id="zone-radius"
-            type="range"
-            min="1"
-            max="30"
-            step="0.1"
-            value={$mapState.subscriptionZone.radiusKm}
-            on:input={onRadiusChange}
-            disabled={busy}
-          />
-        </label>
-
-        <button class="subscribe-btn" on:click={gSubscribe} disabled={busy}>
-          {busy ? 'Folyamatban...' : 'Feliratkozas'}
-        </button>
-      {/if}
-    </div>
-  </section>
-{/if}
+    <button class="subscribe-btn" on:click={gSubscribe} disabled={busy}>
+      {busy ? 'Folyamatban...' : 'Feliratkozas'}
+    </button>
+  {/if}
+</CollapsiblePanel>
