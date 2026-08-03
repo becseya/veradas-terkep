@@ -176,6 +176,15 @@ body {
   font-size: 0.9rem;
 }
 
+.subscribe-loading {
+  margin: 0;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
 .subscribe-btn {
   border: 0;
   border-radius: 12px;
