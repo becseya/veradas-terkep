@@ -28,8 +28,7 @@
 
   function initFirebase() {
     if (typeof window === "undefined" || !window.firebase) {
-      alert("A Firebase SDK nem toltodott be.");
-      return false;
+      throw new Error("A Firebase SDK nem toltodott be.");
     }
 
     if (!window.firebase.apps.length) {
@@ -38,7 +37,6 @@
 
     db = window.firebase.firestore();
     messaging = window.firebase.messaging();
-    return true;
   }
 
   function serverTimestamp() {
@@ -86,16 +84,16 @@
     await navigator.serviceWorker.register("/firebase-messaging-sw.js");
   }
 
- async function unSubscribe() {
-    if (!initFirebase()) {
-      return;
-    }
+  async function getToken() {
+    await ensureMessagingServiceWorker();
+    return await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
+  }
 
+ async function unSubscribe() {
     busy = true;
 
     try {
-      await ensureMessagingServiceWorker();
-      const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
+      const token = await getToken();
       await db.collection('subscriptions').doc(token).delete();
 
       $mapState.subscriptionZone.coords = null;
@@ -109,24 +107,25 @@
   }
 
   async function gCheckSubscription() {
-    if (!initFirebase()) {
-      return;
-    }
-
     try {
-      await ensureMessagingServiceWorker();
-      const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
-      if (token) {
-        const subscriptionRef = db.collection("subscriptions").doc(token);
-        const snapshot = await subscriptionRef.get();
-        if (snapshot.exists) {
-          await subscriptionRef.update({
-            lastSeen: serverTimestamp()
-          });
+      initFirebase();
 
-          restoreState(snapshot.data()?.details);
-          panelState = STATES.SUBSCRIBED;
-          return;
+      if (Notification.permission === 'granted') {
+        const token = await getToken();
+
+        if (token) {
+          const subscriptionRef = db.collection("subscriptions").doc(token);
+          const snapshot = await subscriptionRef.get();
+
+          if (snapshot.exists) {
+            await subscriptionRef.update({
+              lastSeen: serverTimestamp()
+            });
+
+            restoreState(snapshot.data()?.details);
+            panelState = STATES.SUBSCRIBED;
+            return;
+          }
         }
       }
     } catch (err) {
@@ -138,10 +137,6 @@
   }
 
   async function gSubscribe() {
-    if (!initFirebase()) {
-      return;
-    }
-
     busy = true;
 
     try {
@@ -150,27 +145,21 @@
         throw new Error("Az ertesitesi engedely hianyzik.");
       }
 
-      await ensureMessagingServiceWorker();
+      const token = await getToken();
 
-      const token = await messaging.getToken({
-        vapidKey: PUBLIC_VAPID_KEY,
-      });
-    
-     if (token) {
-        await db.collection("subscriptions").doc(token).set({
-          details: exportState(),
-          lastSeen: serverTimestamp()
-        });
-
-        panelState = STATES.SUBSCRIBED;
-        alert(
-          "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
-        );
-      } else {
-        alert(
-          "Nem sikerult azonositot lekerni. Ellenorizd a bongeszo beallitasait!",
-        );
+      if (!token)  {
+        throw new Error("Nem sikerult a token lekerni. Ellenorizd a bongeszo beallitasait!");
       }
+    
+      await db.collection("subscriptions").doc(token).set({
+        details: exportState(),
+        lastSeen: serverTimestamp()
+      });
+
+      panelState = STATES.SUBSCRIBED;
+      alert(
+        "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
+      );
     } catch (error) {
       console.error("Subscription error:", error);
       alert("Hiba tortent a feliratkozas soran.");
