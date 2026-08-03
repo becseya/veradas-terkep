@@ -8,5 +8,6 @@ export const mapState = writable({
     subscriptionZone: {
         coords: null,
         radiusKm: DEFAULT_ZONE_RADIUS_KM,
+        isEditable: false,
     }
 });

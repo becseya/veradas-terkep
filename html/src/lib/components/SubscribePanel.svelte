@@ -176,6 +176,8 @@
     panelState = STATES.FINALIZE;
   }
 
+  $: $mapState.subscriptionZone.isEditable = panelState !== STATES.SUBSCRIBED;
+
   onMount(async () => {
     await gCheckSubscription();
   });

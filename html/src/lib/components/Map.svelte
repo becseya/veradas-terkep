@@ -58,12 +58,18 @@
     let colorPrimary = colorRedPrimary;
     let colorFiller = colorRedFiller;
 
+    if ($mapState.subscriptionZone.isEditable) {
+      colorPrimary = colorGreyPrimary;
+      colorFiller = colorGreyPrimary;
+    }
+
     L.circle(zone.coords, {
       radius: zone.radiusKm * 1000,
       color: colorPrimary,
       weight: 2,
       fillColor: colorFiller,
       fillOpacity: 0.2,
+      className: 'cursor-inherit',
     }).addTo(subscriptionLayer);
 
     L.circleMarker(zone.coords, {
@@ -72,6 +78,7 @@
       fillColor: colorPrimary,
       fillOpacity: 0.95,
       weight: 2,
+      className: 'cursor-inherit',
     }).addTo(subscriptionLayer);
   }
 
@@ -90,7 +97,9 @@
     subscriptionLayer = L.layerGroup().addTo(map);
 
     map.on('click', (event) => {
-      $mapState.subscriptionZone.coords = [event.latlng.lat, event.latlng.lng];
+      if ($mapState.subscriptionZone.isEditable) {
+        $mapState.subscriptionZone.coords = [event.latlng.lat, event.latlng.lng];
+      }
     });
 
     renderMarkers(locations);
@@ -101,3 +110,9 @@
 </script>
 
 <div class="map-root" bind:this={mapElement}></div>
+
+<style>
+  :global(.cursor-inherit) {
+    cursor: inherit;
+  }
+</style>
