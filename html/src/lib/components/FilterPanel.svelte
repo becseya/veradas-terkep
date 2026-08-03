@@ -1,4 +1,6 @@
 <script>
+  import CollapsiblePanel from './CollapsiblePanel.svelte';
+
   export let filters;
   export let collapsed = false;
 
@@ -38,81 +40,54 @@
       : [...filters.intervals, intervalValue];
     filters = { ...filters, intervals: nextIntervals };
   }
-
-  function togglePanel() {
-    collapsed = !collapsed;
-  }
-
- function handleKeydown(event) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      togglePanel();
-    }
-  }
 </script>
 
-<section class="panel panel-filters">
-  <header class="panel-header"
-    role="button"
-    tabindex="0"
-    on:click={togglePanel}
-    on:keydown={handleKeydown}
-  >
-    <h3>Szűrők</h3>
-    <button
-      type="button"
-      class:collapsed
-      class="toggle-btn"
-      aria-label="Szűrők lenyitása/felcsukása"
-    >
-      <i class="fa-solid fa-chevron-down"></i>
-    </button>
-  </header>
+<CollapsiblePanel
+  bind:collapsed
+  sectionClass="panel-filters"
+  title="Szűrők"
+  toggleLabel="Szűrők lenyitása/felcsukása"
+>
+  <div class="filter-group">
+    <label class="filter-title" for="filter-date-range">Dátum</label>
+    <select id="filter-date-range" value={filters.dateRange} on:change={updateDateRange}>
+      <option value="anytime">Bármikor</option>
+      <option value="today">Ma</option>
+      <option value="next_workday">Következő munkanap</option>
+      <option value="this_week">A héten</option>
+      <option value="next_week">Következő héten</option>
+    </select>
+  </div>
 
-  {#if !collapsed}
-    <div class="panel-body">
-      <div class="filter-group">
-        <label class="filter-title" for="filter-date-range">Dátum</label>
-        <select id="filter-date-range" value={filters.dateRange} on:change={updateDateRange}>
-          <option value="anytime">Bármikor</option>
-          <option value="today">Ma</option>
-          <option value="next_workday">Következő munkanap</option>
-          <option value="this_week">A héten</option>
-          <option value="next_week">Következő héten</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-title">Napok</span>
-        <div class="day-filters">
-          {#each dayLabels as day}
-            <label class="day-filter">
-              <input
-                type="checkbox"
-                checked={filters.days.includes(day.value)}
-                on:change={() => toggleDay(day.value)}
-              />
-              <span>{day.label}</span>
-            </label>
-          {/each}
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-title">Időszakok</span>
-        <div class="interval-filters">
-          {#each intervalLabels as interval}
-            <label class="interval-filter">
-              <input
-                type="checkbox"
-                checked={filters.intervals.includes(interval.value)}
-                on:change={() => toggleInterval(interval.value)}
-              />
-              <span>{interval.label}</span>
-            </label>
-          {/each}
-        </div>
-      </div>
+  <div class="filter-group">
+    <span class="filter-title">Napok</span>
+    <div class="day-filters">
+      {#each dayLabels as day}
+        <label class="day-filter">
+          <input
+            type="checkbox"
+            checked={filters.days.includes(day.value)}
+            on:change={() => toggleDay(day.value)}
+          />
+          <span>{day.label}</span>
+        </label>
+      {/each}
     </div>
-  {/if}
-</section>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-title">Időszakok</span>
+    <div class="interval-filters">
+      {#each intervalLabels as interval}
+        <label class="interval-filter">
+          <input
+            type="checkbox"
+            checked={filters.intervals.includes(interval.value)}
+            on:change={() => toggleInterval(interval.value)}
+          />
+          <span>{interval.label}</span>
+        </label>
+      {/each}
+    </div>
+  </div>
+</CollapsiblePanel>
