@@ -26,10 +26,9 @@
   let panelState = STATES.INIT;
   let busy = false;
 
-  function initFirebase() {
+  function ensureFirebase() {
     if (typeof window === "undefined" || !window.firebase) {
-      alert("A Firebase SDK nem toltodott be.");
-      return false;
+      throw new Error("A Firebase SDK nem toltodott be.");
     }
 
     if (!window.firebase.apps.length) {
@@ -38,7 +37,6 @@
 
     db = window.firebase.firestore();
     messaging = window.firebase.messaging();
-    return true;
   }
 
   function serverTimestamp() {
@@ -78,24 +76,31 @@
     $mapState.subscriptionZone.radiusKm = firstZone.radiusKm;
   }
 
-  async function ensureMessagingServiceWorker() {
-    if (!("serviceWorker" in navigator)) {
-      throw new Error("A bongeszo nem tamogatja a service worker-t.");
+  async function bootstrapToken(ensureServiceWorker = true) {
+
+    ensureFirebase();
+
+    if (ensureServiceWorker) {
+      if (!("serviceWorker" in navigator)) {
+        throw new Error("A bongeszo nem tamogatja a service worker-t.");
+      }
+
+      await navigator.serviceWorker.register("/firebase-messaging-sw.js");
     }
 
-    await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
+    if (!token)  {
+      throw new Error("Nem sikerult a token lekerni. Ellenorizd a bongeszo beallitasait!");
+    }
+
+    return token;
   }
 
  async function unSubscribe() {
-    if (!initFirebase()) {
-      return;
-    }
-
     busy = true;
 
     try {
-      await ensureMessagingServiceWorker();
-      const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
+      const token = await bootstrapToken(false);
       await db.collection('subscriptions').doc(token).delete();
 
       $mapState.subscriptionZone.coords = null;
@@ -109,25 +114,18 @@
   }
 
   async function gCheckSubscription() {
-    if (!initFirebase()) {
-      return;
-    }
-
     try {
-      await ensureMessagingServiceWorker();
-      const token = await messaging.getToken({ vapidKey: PUBLIC_VAPID_KEY });
-      if (token) {
-        const subscriptionRef = db.collection("subscriptions").doc(token);
-        const snapshot = await subscriptionRef.get();
-        if (snapshot.exists) {
-          await subscriptionRef.update({
-            lastSeen: serverTimestamp()
-          });
+      const token = await bootstrapToken();
+      const subscriptionRef = db.collection("subscriptions").doc(token);
+      const snapshot = await subscriptionRef.get();
+      if (snapshot.exists) {
+        await subscriptionRef.update({
+          lastSeen: serverTimestamp()
+        });
 
-          restoreState(snapshot.data()?.details);
-          panelState = STATES.SUBSCRIBED;
-          return;
-        }
+        restoreState(snapshot.data()?.details);
+        panelState = STATES.SUBSCRIBED;
+        return;
       }
     } catch (err) {
       console.error('checkSubscription error:', err);
@@ -138,10 +136,6 @@
   }
 
   async function gSubscribe() {
-    if (!initFirebase()) {
-      return;
-    }
-
     busy = true;
 
     try {
@@ -150,27 +144,17 @@
         throw new Error("Az ertesitesi engedely hianyzik.");
       }
 
-      await ensureMessagingServiceWorker();
-
-      const token = await messaging.getToken({
-        vapidKey: PUBLIC_VAPID_KEY,
-      });
+      const token = await bootstrapToken();
     
-     if (token) {
-        await db.collection("subscriptions").doc(token).set({
-          details: exportState(),
-          lastSeen: serverTimestamp()
-        });
+      await db.collection("subscriptions").doc(token).set({
+        details: exportState(),
+        lastSeen: serverTimestamp()
+      });
 
-        panelState = STATES.SUBSCRIBED;
-        alert(
-          "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
-        );
-      } else {
-        alert(
-          "Nem sikerult azonositot lekerni. Ellenorizd a bongeszo beallitasait!",
-        );
-      }
+      panelState = STATES.SUBSCRIBED;
+      alert(
+        "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
+      );
     } catch (error) {
       console.error("Subscription error:", error);
       alert("Hiba tortent a feliratkozas soran.");
