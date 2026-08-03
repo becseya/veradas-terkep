@@ -10,8 +10,12 @@
   let markersLayer;
   let subscriptionLayer;
 
+  const colorRedPrimary = 'var(--accent)';
+  const colorRedFiller = '#d96b5d';
+  const colorGreyPrimary = '#6f7b86';
+
   function createCustomIcon(isFixed) {
-    const color = isFixed ? '#6f7b86' : 'var(--accent)';
+    const color = isFixed ? colorGreyPrimary : colorRedPrimary;
     const iconClass = isFixed ? 'fa-solid fa-hospital' : 'fa-solid fa-ambulance';
 
     return L.divIcon({
@@ -51,18 +55,21 @@
       return;
     }
 
+    let colorPrimary = colorRedPrimary;
+    let colorFiller = colorRedFiller;
+
     L.circle(zone.coords, {
       radius: zone.radiusKm * 1000,
-      color: '#a2332a',
+      color: colorPrimary,
       weight: 2,
-      fillColor: '#d96b5d',
+      fillColor: colorFiller,
       fillOpacity: 0.2,
     }).addTo(subscriptionLayer);
 
     L.circleMarker(zone.coords, {
       radius: 6,
-      color: '#7d221b',
-      fillColor: '#bf3f2f',
+      color: colorPrimary,
+      fillColor: colorPrimary,
       fillOpacity: 0.95,
       weight: 2,
     }).addTo(subscriptionLayer);
