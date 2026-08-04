@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR=$(dirname "$0")
 OUT_DIR="../html/public"
 OUTPUT_JS="$OUT_DIR/locations.js"
+OUTPUT_JSON="$OUT_DIR/locations.json"
 
 cd "$SCRIPT_DIR"
 
@@ -19,10 +20,15 @@ cat locations.json | python3 decorate.py > locations_decorated.json
 
 # final output
 mkdir -p "$OUT_DIR"
+
 echo "const LOCATIONS = " > "$OUTPUT_JS"
 cat locations_decorated.json >> "$OUTPUT_JS"
 echo ";" >> "$OUTPUT_JS"
 echo "const DATE_SCRAPED_AT='$(date)';" >> "$OUTPUT_JS"
+
+echo '{ "locations": ' > "$OUTPUT_JSON"
+cat locations_decorated.json >> "$OUTPUT_JSON"
+echo ", \"dateScrapedAt\": \"$(date)\" }" >> "$OUTPUT_JSON"
 
 # print info
 num_elements=$(cat locations_decorated.json | grep 'isFixedLocation' | wc -l)

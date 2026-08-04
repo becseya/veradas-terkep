@@ -11,15 +11,54 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+const ROOT_URL = '/';
+
+function getTargetUrlFromPayload(payload) {
+  const payloadUrl = payload?.fcmOptions?.link || payload?.data?.link || payload?.data?.url;
+  return new URL(payloadUrl || ROOT_URL, self.location.origin).href;
+}
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.notification?.title || 'Veradas-terkep';
+  const targetUrl = getTargetUrlFromPayload(payload);
   const notificationOptions = {
-    body: payload.notification.body
+    body: payload.notification?.body || '',
+    icon: '/favicon.ico',
+    data: {
+      url: targetUrl
+    }
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// TODO icon, url,
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification?.data?.url || ROOT_URL, self.location.origin).href;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
+      for (const client of windowClients) {
+        const clientOrigin = new URL(client.url).origin;
+        if (clientOrigin !== self.location.origin || !('focus' in client)) {
+          continue;
+        }
+
+        if ('navigate' in client) {
+          await client.navigate(targetUrl);
+        }
+
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+
+      return undefined;
+    })
+  );
+});
