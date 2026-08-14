@@ -36,7 +36,9 @@ for event in table_with_data.find_all('tr'):
 
     if id in places:
         if date in places[id]['appointments']:
-            raise Exception(f"Duplicate appointment for {name} on {date}")
+            import warnings
+            warnings.warn(f"Duplicate appointment for {name} on {date}")
+            continue
 
         places[id]['appointments'][date] = appointment
     else:
