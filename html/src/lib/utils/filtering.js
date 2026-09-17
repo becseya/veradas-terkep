@@ -15,8 +15,11 @@ export function filterLocations(locations, settings) {
         return false;
       }
 
-      const dayMatch = settings.days.includes(appointment.dayOfWeek);
+      let dayMatch = settings.days.includes(appointment.dayOfWeek);
       const intervalMatch = appointment.intervals.some((interval) => settings.intervals.includes(interval));
+
+      if (settings.dateRange !== 'sel_days')
+        dayMatch = true;
 
       return dayMatch && intervalMatch;
     });

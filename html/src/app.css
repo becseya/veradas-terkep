@@ -170,6 +170,7 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  padding-top: 0.2rem;
 }
 
 .day-filter {

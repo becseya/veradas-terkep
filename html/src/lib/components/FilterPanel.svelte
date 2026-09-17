@@ -79,27 +79,27 @@
           <option value="next_workday">Következő munkanap</option>
           <option value="this_week">A héten</option>
           <option value="next_week">Következő héten</option>
+          <option value="sel_days">Az alábbi napokon:</option>
         </select>
+
+        {#if filters.dateRange == 'sel_days'}
+          <div class="day-filters">
+            {#each dayLabels as day}
+              <label class="day-filter">
+                <input
+                  type="checkbox"
+                  checked={filters.days.includes(day.value)}
+                  on:change={() => toggleDay(day.value)}
+                />
+                <span>{day.label}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
       </div>
 
       <div class="filter-group">
-        <span class="filter-title">Napok</span>
-        <div class="day-filters">
-          {#each dayLabels as day}
-            <label class="day-filter">
-              <input
-                type="checkbox"
-                checked={filters.days.includes(day.value)}
-                on:change={() => toggleDay(day.value)}
-              />
-              <span>{day.label}</span>
-            </label>
-          {/each}
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-title">Időszakok</span>
+        <span class="filter-title">Napszak</span>
         <div class="interval-filters">
           {#each intervalLabels as interval}
             <label class="interval-filter">
