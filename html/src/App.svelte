@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Map from './lib/components/Map.svelte';
   import Sidebar from './lib/components/Sidebar.svelte';
+  import InfoPanel from './lib/components/InfoPanel.svelte';
   import { DEFAULT_FILTERS, filterLocations } from './lib/utils/filtering.js';
 
   let allLocations = [];
@@ -29,4 +30,6 @@
   <Map locations={filteredLocations} bind:selectedLocation />
 
   <Sidebar bind:selectedLocation bind:filters />
+
+  <InfoPanel/>
 </main>

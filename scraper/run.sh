@@ -22,7 +22,7 @@ mkdir -p "$OUT_DIR"
 echo "const LOCATIONS = " > "$OUTPUT_JS"
 cat locations_decorated.json >> "$OUTPUT_JS"
 echo ";" >> "$OUTPUT_JS"
-echo "const DATE_SCRAPED_AT='$(date)';" >> "$OUTPUT_JS"
+echo "const DATE_SCRAPED_AT='$(date -Iminutes)';" >> "$OUTPUT_JS"
 
 # print info
 num_elements=$(cat locations_decorated.json | grep 'isFixedLocation' | wc -l)
