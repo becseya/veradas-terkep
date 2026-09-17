@@ -1,6 +1,6 @@
 scraper/*.json
 scraper/*.html
-public/locations.js
+html/public
 
 
 # ------------------- FIREBASE AUTO GENERATION BELOW -------------------
