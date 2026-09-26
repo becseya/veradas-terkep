@@ -119,9 +119,14 @@ def process_notifications(locations):
 
             if is_at_least_one_new_appointment(details, locations):
                 message = messaging.Message(
-                    notification=messaging.Notification(
-                        title='Új véradási helyszín a közeledben!',
-                        body=f"Kattints a részletekért..."
+                    webpush=messaging.WebpushConfig(
+                        notification=messaging.WebpushNotification(
+                            title='Új véradási helyszín a közeledben!',
+                            body=f"Kattints a részletekért...",
+                        ),
+                        fcm_options=messaging.WebpushFCMOptions(
+                            link='https://veradas-terkep.hu/?from=notification&v=3',
+                        )
                     ),
                     token=token
                 )
