@@ -123,6 +123,9 @@ def process_notifications(locations):
                         notification=messaging.WebpushNotification(
                             title='Új véradási helyszín a közeledben!',
                             body=f"Kattints a részletekért...",
+                            icon='https://veradas-terkep.hu/logo.png',
+                            image='https://veradas-terkep.hu/logo.png',
+                            badge='https://veradas-terkep.hu/logo.png',
                         ),
                         fcm_options=messaging.WebpushFCMOptions(
                             link='https://veradas-terkep.hu/?from=notification&v=3',
