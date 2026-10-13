@@ -30,7 +30,7 @@
 
   function initFirebase() {
     if (typeof window === "undefined" || !window.firebase) {
-      throw new Error("A Firebase SDK nem toltodott be.");
+      throw new Error("A Firebase SDK nem töltődött be.");
     }
 
     if (!window.firebase.apps.length) {
@@ -48,7 +48,7 @@
   function exportState() {
     const zone = $mapState.subscriptionZone;
     if (!zone.coords) {
-      throw new Error('Nincs kivalasztott helyszin.');
+      throw new Error('Nincs kiválasztott helyszín.');
     }
 
     return JSON.stringify({
@@ -80,7 +80,7 @@
 
   async function ensureMessagingServiceWorker() {
     if (!("serviceWorker" in navigator)) {
-      throw new Error("A bongeszo nem tamogatja a service worker-t.");
+      throw new Error("A böngésző nem támogatja a service worker-t.");
     }
 
     await navigator.serviceWorker.register("/firebase-messaging-sw.js");
@@ -102,7 +102,7 @@
       panelState = STATES.GET_LOC;
     } catch (error) {
       console.error('unSubscribe error:', error);
-      alert('Hiba tortent a leiratkozas soran.');
+      alert('Hiba történt a leiratkozás során. Kérlek próbáld újra.');
     } finally {
       busy = false;
     }
@@ -145,13 +145,13 @@
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        throw new Error("Az ertesitesi engedely hianyzik.");
+        throw new Error("Hiányzik az értesítési engedély. Kérlek engedélyezd a böngésző beállításaiban!");
       }
 
       const token = await getToken();
 
       if (!token)  {
-        throw new Error("Nem sikerult a token lekerni. Ellenorizd a bongeszo beallitasait!");
+        throw new Error("Nem sikerült lekérni a tokent.");
       }
     
       await db.collection("subscriptions").doc(token).set({
@@ -162,11 +162,11 @@
       panelState = STATES.SUBSCRIBED;
       collapsed = true;
       alert(
-        "Sikeres feliratkozas! Ertesiteni fogunk, ha uj veradas lesz a kornyekeden.",
+        "Sikeres feliratkozás! Értesíteni fogunk, ha új véradás lesz a környékeden.",
       );
     } catch (error) {
       console.error("Subscription error:", error);
-      alert("Hiba tortent a feliratkozas soran.");
+      alert("Hiba történt a feliratkozás során.");
     } finally {
       busy = false;
     }
@@ -190,29 +190,28 @@
 <CollapsiblePanel
   bind:collapsed
   sectionClass="panel-subscribe"
-  title="Ertesitesek"
-  toggleLabel="Ertesitesek lenyitása/felcsukása"
+  title="Értesítések"
+  toggleLabel="rejt / mutat"
 >
   {#if panelState === STATES.INIT}
     <p class="subscribe-loading">
       <i class="fa-solid fa-spinner fa-spin"></i>
-      Feliratkozasi allapot ellenorzese...
+      Feliratkozási állapot ellenőrzése...
     </p>
   {:else if panelState === STATES.SUBSCRIBED}
-    <p class="subscribe-copy">Mar sikeresen feliratkoztal.</p>
+    <p class="subscribe-copy">Már sikeresen feliratkoztál.</p>
     <button class="subscribe-btn subscribe-btn-secondary" on:click={unSubscribe} disabled={busy}>
-      {busy ? 'Folyamatban...' : 'Leiratkozas'}
+      {busy ? 'Folyamatban...' : 'Leiratkozás'}
     </button>
   {:else if panelState === STATES.GET_LOC}
-    <p class="subscribe-copy">Valaszd ki a helyszint a terkep segitsegevel.</p>
+    <p class="subscribe-copy">Válaszd ki a helyszínt a térkép segítségével.</p>
   {:else}
     <p class="subscribe-copy">
-      A kijelolt helyszin kattintassal modosithato. Allitsd be a sugarat, majd mentsd a
-      feliratkozast.
+      A leszúrt helyszín kattintással módosítható. Állítsd be a távolságot, majd véglegesítsd!
     </p>
 
     <label class="radius-wrap" for="zone-radius">
-      <span>Sugar: {$mapState.subscriptionZone.radiusKm} km</span>
+      <span>Távolság: {$mapState.subscriptionZone.radiusKm} km</span>
       <input
         id="zone-radius"
         type="range"
@@ -226,7 +225,7 @@
     </label>
 
     <button class="subscribe-btn" on:click={gSubscribe} disabled={busy}>
-      {busy ? 'Folyamatban...' : 'Feliratkozas'}
+      {busy ? 'Folyamatban...' : 'Feliratkozás'}
     </button>
   {/if}
 </CollapsiblePanel>

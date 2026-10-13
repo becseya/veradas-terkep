@@ -12,7 +12,6 @@
 
   onMount(async () => {
     allLocations = LOCATIONS ?? [];
-    console.log('Loaded locations:', allLocations);
     filteredLocations = allLocations;
   });
 
