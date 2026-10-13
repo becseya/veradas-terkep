@@ -1,16 +1,21 @@
 <script>
   import { onMount } from 'svelte';
   import L from 'leaflet';
+  import { mapState } from '../stores/mapState.js';
 
   export let locations = [];
-  export let selectedLocation = null;
 
   let mapElement;
   let map;
   let markersLayer;
+  let subscriptionLayer;
+
+  const colorRedPrimary = 'var(--accent)';
+  const colorRedFiller = '#d96b5d';
+  const colorGreyPrimary = '#6f7b86';
 
   function createCustomIcon(isFixed) {
-    const color = isFixed ? '#6f7b86' : 'var(--accent)';
+    const color = isFixed ? colorGreyPrimary : colorRedPrimary;
     const iconClass = isFixed ? 'fa-solid fa-hospital' : 'fa-solid fa-ambulance';
 
     return L.divIcon({
@@ -34,9 +39,47 @@
       }).addTo(markersLayer);
 
       marker.on('click', () => {
-        selectedLocation = location;
+        $mapState.selectedLocation = location;
       });
     });
+  }
+
+  function renderSubscriptionZone(zone) {
+    if (!subscriptionLayer) {
+      return;
+    }
+
+    subscriptionLayer.clearLayers();
+
+    if (!zone.coords) {
+      return;
+    }
+
+    let colorPrimary = colorRedPrimary;
+    let colorFiller = colorRedFiller;
+
+    if ($mapState.subscriptionZone.isEditable) {
+      colorPrimary = colorGreyPrimary;
+      colorFiller = colorGreyPrimary;
+    }
+
+    L.circle(zone.coords, {
+      radius: zone.radiusKm * 1000,
+      color: colorPrimary,
+      weight: 2,
+      fillColor: colorFiller,
+      fillOpacity: 0.2,
+      className: 'cursor-inherit',
+    }).addTo(subscriptionLayer);
+
+    L.circleMarker(zone.coords, {
+      radius: 6,
+      color: colorPrimary,
+      fillColor: colorPrimary,
+      fillOpacity: 0.95,
+      weight: 2,
+      className: 'cursor-inherit',
+    }).addTo(subscriptionLayer);
   }
 
   onMount(() => {
@@ -51,10 +94,25 @@
     }).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
+    subscriptionLayer = L.layerGroup().addTo(map);
+
+    map.on('click', (event) => {
+      if ($mapState.subscriptionZone.isEditable) {
+        $mapState.subscriptionZone.coords = [event.latlng.lat, event.latlng.lng];
+      }
+    });
+
     renderMarkers(locations);
   });
 
   $: renderMarkers(locations);
+  $: renderSubscriptionZone($mapState.subscriptionZone);
 </script>
 
 <div class="map-root" bind:this={mapElement}></div>
+
+<style>
+  :global(.cursor-inherit) {
+    cursor: inherit;
+  }
+</style>

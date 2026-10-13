@@ -21,7 +21,7 @@ export default defineConfig({
   define: {
     __APP_BUILD_VERSION__: JSON.stringify(buildVersion)
   },
-  publicDir: false,
+  publicDir: 'static',
   build: {
     outDir: 'public',
     emptyOutDir: false
