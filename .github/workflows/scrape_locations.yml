@@ -49,6 +49,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: "${{ secrets.DEPLOYER_BOT_KEY }}"
+          firebaseToolsVersion: 15.34.0
           projectId: veradas-terkep
           channelId: live
 
